@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1580348256144.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1735402181",
+    "id" : "F0F2494F",
+    "lastKnownWriteTime" : 1584314984,
+    "last_content_update" : 1584314984700,
+    "path" : "~/Tech/Class Folders/Winter 2020/Adv. Exp 642/HW2/HW2_Syntax_Cantu.R",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "16,13",
+        "scrollLine" : "0",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

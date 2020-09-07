@@ -1,0 +1,133 @@
+---
+title: "Dependent T-Test"
+author: "Michael S. Ternes, Ph.D."
+date: "1/26/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+We are going to continue to follow along with the book as we shift our attention to dependent t-tests. Be sure to have your data and packages loaded up. We continue to have two forms of the same data. For the dependent t-test, we have only 12 study participants who reported their anxiety to a spider-related stimuli. Six participants were exposed to a picture of a spider and rated for their anxiety and then exposed to a real spider and reported their anxiety again. The other six participants were exposed to the same process but in the reverse order. The layout of the wide form and long form dataframes remains the same. When you indicated to R that the t-test you are running is paired, it will know that, in the long form data, the second grouping variable is the start to the participants' second response. If you were to build your own long form dataset, it would be important to be certain that participants are ordered the same each time their anxiety score is entered into the database. It is easier to visualize the pairing of scores in the wide form data. 
+
+```{r, include=FALSE}
+anxLong <- read.delim("SpiderLong.dat", header = TRUE)
+anxWide <- read.delim("SpiderWide.dat", header = TRUE)
+library(ggplot2)
+library(pastecs)
+library(WRS)
+library(car)
+```
+
+```{r, eval=FALSE}
+anxLong <- read.delim("SpiderLong.dat", header = TRUE)
+anxWide <- read.delim("SpiderWide.dat", header = TRUE)
+library(ggplot2)
+library(pastecs)
+library(WRS)
+library(car)
+```
+
+## Assumptions ##
+
+As in the independent t-test, we need to ensure that our data adhere as best as possible to the four assumptions of parametric statistics...well mainly three of them. Here, the assumption of independence is a bit grey. While we could say that our participants do not influence one another, we cannot say the same for our groups. Dependent t-tests are designed to account for this but not for dependence between participants. We also assume that variables are at least interval, though we make exceptions for this with our nominal grouping variables. Here, though, we are bound to having only two levels - 0 or 1. We also assume normal distribution. Importantly, for dependent t-tests, we are assuming that our paired differences are normally distributed and not our variables themselves. To do this, it might be easiest to create a new variable in the wide dataframe.
+
+```{r}
+anxWide$dif <- anxWide$picture - anxWide$real
+anxWide
+```
+
+By running the name of the dataframe, we can see that we have successfully created a new variable for the differences. We can now test for normality.
+
+```{r}
+stat.desc(anxWide$dif, basic = F, norm = T)
+```
+
+We can see from the results that our differences are wonderfully normal. This leaves the final assumption, homogeneity of variance. Or does it? We are interested in a paired sample. Thus, our emphasis is on information coming from the same population; therefore, we have no need to see if our variance is homogeneous because it is assumed that the same participants, and therefore the same population, is being used in each condition. Contrast that with independent groups wherein we assume that they mimic the same population despite the possibility that they are drawn from separate populations. 
+
+## T-test ##
+
+Our data is as assumptive (yeah, it is a real word and, yeah, I am slightly misusing it) as we want it to be. Now what? Well, the t-test is going to be attempting to answer the question, does the mean of our participants in one condition significantly differ from the mean of our same participants in another condition. Since our participants are the same in each condition, the formula for their comparison shifts slightly in an attempt to account for this. 
+
+$$
+\begin{aligned}
+t=\frac{\overline{D}-\mu_D}{\frac{S_D}{\sqrt{N}}}
+\end{aligned}
+$$
+
+In this equation $\overline{D}$ is the mean difference between our samples. Note that this is taking the place of the difference in means. Those to things may seem like samantics, yet I promise you they mean different things. $\mu_D$ is the expected mean difference in our population. In general, if the null hypothesis is true, we expect this to be 0. Below, we have the standard deviation of the mean difference divided by the square root of N. If you are more comfortable working it, you can think of this as the variance of the mean difference divided by N. An important thing to pay attention to is standard error of differences, represented by the denominator of our $t$ equation. When the standard error is large, it is an indication that sample means can deviate widely, therefore large differences between pairs of samples can be large due to chance alone. When standard error is smaller, then we expect differences between pairs of samples to be small with larger differences constituting a low probability event. Essentially, the t test is comparing systematic variation (experimental effect) against unsystematic variation. If this sounds familiar, it is because it is the same concept as comparing our model against the information still left unexplained, which is the appraoch we took in calculating our F-statistic for our regression models.
+
+Now then, let us let R do all of this for us, shall we? Similar to independent tests, we want to use the function t.test(). Just as before, there are two approaches we can take to this function dependent upon whether we want to use long form data or wide form data. If all of your outcome scores are in a singular column, then you can use t.test() much like you would use the lm() function. The basic layout would be Model <- t.test(outcome ~ predictor, data = dataframe, paired = TRUE/FALSE, na.action = na.omit, *mu = 0, alternative = "two.sided"/"less"/"greater"*). In this layout, the predictor is the variable that offers the grouping. The paired argument tells R whether this is an independent (FALSE) or dependent (TRUE) t-test. In italics are optional argument. If you expected a difference in groups, you could account for that difference with the mu argument. If you wanted to do a one-tailed test, you could specify "less" or "greater." The string for the two-tailed test is the default. 
+
+```{r}
+longModeldep <- t.test(Anxiety ~ Group, data = anxLong, paired = TRUE, na.action = na.omit)
+longModeldep
+```
+
+Alternatively, we can make use of the wide data set with the following general layout: Model <- t.test(condition 1 scores, condition 2 scores, paired = TRUE/FALSE, na.action = na.omit, *mu = 0, alternative = "two.sided"/"less"/"greater"*). Let us run this with our spider data.
+
+```{r}
+wideModeldep <- t.test(anxWide$picture, anxWide$real, paired = TRUE, na.action = na.omit)
+wideModeldep
+```
+
+Note that order of entry matters here. So know what you want to be condition 1 and condition 2 respectively. What would have happened if exposure to a real spider had been condition 1 and the picture had been condition 2?
+
+## Robust Examination ##
+
+Just as before, we can explore our dependent t-test using trimmed means. As a reminder, a trimmed mean will exclude a specified percentage of your extreme scores on either side of the mean. Therefore, trimmed means are best for situations in which you have skewness. To do this, we need access to the WRS2 package. In WRS2, you want to use the following format yuend(condition 1 score, condition 2 score, tr = .2). Please note that the markdown was unable to run these for the html. Give it a try on your own and you should see the proper output. 
+
+```{r, eval=FALSE}
+yuend(anxWide$picture, anxWide$real, tr = .2)
+```
+
+If desired, you could combine your trimmed mean with a bootstrap. The command you would use for this is only accessible through the created WRS package or from the txt file. The code takes on the following general format: ydbt(condition 1 scores, condition 2 scores, tr = .2, nboot = 2000, alpha = .05, side = TRUE/FALSE). Side, again, is indicating whether or not you want a symetrical confidence interval. If you set this to TRUE you will receive a probability value for the bootstrapped figure. 
+
+```{r, eval=FALSE}
+ydbt(anxWide$picture, anxWide$real, tr = .2, nboot = 2000, alpha = .05, side = TRUE)
+```
+
+Frustratingly, this also will not run in my markdown assembly. A final robust method covered by the text is to use a M-estimator to control for outliers rather than trimming your mean. This can, of course, be combined with a bootstrap. This function is available only through the WRS package or txt file and takes the general form bootdpci(condition 1 scores, condition 2 scores, alpha = .05, nboot = 2000, est = tmean). In this function, mom is known as a modified one-step estimator of location based on Huber's Psi. This is beyond the scope of this class, but at least you know that the function is not emailing someone's mom.
+
+```{r, eval=FALSE}
+bootdpci(anxWide$picture, anxWide$real, alpha = .05, nboot = 2000, est = tmean)
+```
+
+Here again, when creating the html, R will not run this function. I do not know why. 
+
+## Effect Sizes ##
+
+Remember that the t-test is a test of significance looking at differences. What kind of difference being evaluated depends on the situation in which the t-test is being used. If our observed difference is not statistically significant, it could still be a meaningful effect. A different way to think about this is, just because your effect more probable than not does not mean it is not meaningful. To evaluage the meaningful nature of our observation, we can convert our t-value back to an effect size with which we are all familiar...$r$. We could calculate this by hand in a very straightforward way. 
+
+$$
+\begin{aligned}
+r=\sqrt{\frac{t^2}{t^2 + df}}
+\end{aligned}
+$$
+
+In addition to following the steps with our hand calculations, we can have R do this for us. The only catch, is we have to teach it what we want. Let us return to either of our non-robust t-tests. Contained in these objects are a variety of numbers that are used in the creation of our output. Just like when we were working with values contained in our regression models, we need to reference values contained in our t-test objects. Let us extract our t, as well as our df.
+
+```{r}
+t <- longModeldep$statistic[[1]]
+df <- longModeldep$parameter[[1]]
+```
+
+Fun fact, you can use either the long form or wide form t-test. 
+
+```{r}
+talt <- wideModeldep$statistic[[1]]
+dfalt <- wideModeldep$parameter[[1]]
+```
+
+Then to convert our $t$ to $r$, we need to run the following code. Note, this will not provide a number, it will create another object. 
+
+```{r}
+r <- sqrt(t^2/(t^2+df))
+```
+
+We can then display the value of $r$ rounded to the nearest thousandth by running:
+
+```{r}
+round(r, 3)
+```

@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1583165352434.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "4024029335",
+    "id" : "EF51C5B9",
+    "lastKnownWriteTime" : 1584315445,
+    "last_content_update" : 1584315445307,
+    "path" : "~/Tech/Class Folders/Winter 2020/Adv. Exp 642/HW5/StartingSyntax.R",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "6,0",
+        "scrollLine" : "0"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

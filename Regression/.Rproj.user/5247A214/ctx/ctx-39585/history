@@ -1,0 +1,204 @@
+library(car)
+library(QuantPsyc)
+library(boot)
+install.packages("QuantPsyc")
+library(QuantPsyc)
+simple <- read.delim("Album Sales 1.dat", header = TRUE)
+View(simple)
+View(simple)
+simple <- lm(sales ~ adverts, data = simple, na.action = na.omit)  #
+summary(simple)
+hierarchical = read.delim("Album Sales 2.dat", header = "TRUE")
+gfr <- read.delim("GlastonburyFestivalRegression.dat", header = "TRUE")
+hierarchical = read.delim("Album Sales 2.dat", header = TRUE)
+gfr <- read.delim("GlastonburyFestivalRegression.dat", header = TRUE)
+summary(simple) #must use summary simple because it is the
+summary(simple) #must use summary simple because it is the
+summary(simple) #must use summary simple because it is the
+lm.beta(simple)
+library(psych)
+library(pastecs)
+describe(simple$sales)
+simple <- read.delim("Album Sales 1.dat", header = TRUE)
+describe(simple$sales)
+simplereg <- lm(sales ~ adverts, data = simple, na.action = na.omit)  #newModel<-lm(outcome ~ predictor(s), data = dataFrame, na.action = an action))
+describe(simple,c("sample", "adverts"))
+describe(simple[,c("sample", "adverts")])
+describe(simple[,c("sales", "adverts")])
+stat.desc(simple[,c("sales", "adverts")], basic = FALSE, norm = TRUE)
+round(stat.desc(simple[,c("sales", "adverts")], basic = FALSE, norm = TRUE)
+round(stat.desc(simple[,c("sales", "adverts")], basic = FALSE, norm = TRUE))
+round(stat.desc(simple[,c("sales", "adverts")], basic = FALSE, norm = TRUE))
+round(stat.desc(simple[,c("sales", "adverts")], basic = FALSE, norm = TRUE), digits = 2) #this rounds the above code
+library(car)
+library(QuantPsyc)
+library(boot)
+library(psych) #access to decribe
+library(pastecs) #stat.desc
+albumsales.2 <- lm(sales ~ adverts + airplay + attract, data = hierarchical, na.action = na.omit)
+summary(albumsales.2)
+lm.beta(albumsales.2)
+anova(albumsales.1, albumsales.2)
+anova(simplereg, albumsales.2)
+anova(albumsales.2, simplereg)
+simple <- read.delim("Album Sales 1.dat", header = TRUE)
+hierarchical <- read.delim("Album Sales 2.dat", header = TRUE)
+library(car)
+library(QuantPsyc)
+library(boot)
+library(psych)
+library(pastecs)
+library(ggplot2)
+albumsales.1 <- lm(sales ~ adverts, data = simple, na.action = na.omit)
+albumsales.2 <- lm(sales ~ adverts + airplay + attract, data = hierarchical, na.action = na.omit)
+hierarchical$stdresid <- rstandard(albumsales.2)
+hierarchical[1:5]
+hierarchical[1:5,]
+hierarchical$sturesid <- rstudent(albumsales.2)
+hierarchical$resid <- resid(albumsales.2)
+sum(hierarchical$large.resid)
+hierarchical$large.resid <- hierarchical$stdresid > 2 | hierarchical$stdresid < -2 #this creates the variable large.resid
+sum(hierarchical$large.resid)
+problems <- hierarchical[hierarchical$large.resid,]
+problems
+write.table(problems, "Album Sales Problems.dat", sep = "\t", row.names = TRUE)
+hierarchical$cooks <- cooks.distance(albumsales.2)
+hierarchical$leverage <- hatvalues(albumsales.2)
+hierarchical$dffit <- dffits(albumsales.2)
+hierarchical$dfbeta <- dfbeta(albumsales.2)
+problems <- hierarchical[hierarchical$large.resid,c("cooks", "leverage", "dffit", "dfbeta")] #updates your special cases dataframe
+problems
+ncvTest(albumsales.2)
+library(ggplot2)
+hierarchical$fitted <- albumsales.2$fitted.values
+scatter <- ggplot(hierarchical, aes(fitted, sturesid)) + geom_point() + geom_smooth(method = "lm", color = "Blue", se = F) + labs(x = "Fitted Values", y = "Studentized Residual")
+scatter
+hpredict <- hierarchical[,c("adverts","airplay","attract")]
+cor(hpredict, use = "pairwise.complete.obs", method = "pearson")
+vif(albumsales.2)
+1/vif(albumsales.2)
+external <- hierarchical[,c("adverts","airplay","attract","resid")]
+cor(external, use = "pairwise.complete.obs", method = "pearson")
+durbinWatsonTest(albumsales.2)
+dwt(albumsales.2)
+resid.hist <- ggplot(hierarchical, aes(stdresid)) + geom_histogram(aes(y = ..density..), color = "black", fill = "white") + labs(x = "Standardized Residual", y = "Density") + stat_function(fun = dnorm, args = list(mean = mean(hierarchical$stdresid, na.rm = TRUE), sd = sd(hierarchical$stdresid, na.rm = TRUE)), color = "black", size = 1)
+resid.hist
+resid.hist <- ggplot(hierarchical, aes(stdresid)) + geom_histogram(aes(y = ..density..), color = "black", fill = "white") + labs(x = "Standardized Residual", y = "Density") + stat_function(fun = dnorm, args = list(mean = mean(hierarchical$stdresid, na.rm = TRUE), sd = sd(hierarchical$stdresid, na.rm = TRUE)), color = "black", size = 1)
+resid.hist
+resid.qq <- ggplot(hierarchical, aes(sample = stdresid)) + stat_qq(na.rm = TRUE) + labs(x = "Theoretical Values", y = "Observed Values")
+resid.qq
+stat.desc(hierarchical$stdresid, basic = F, norm = T)
+bootResults <- boot(statistic = bootReg, formula = sales ~ adverts + airplay + attract, data = hierarchical, R = 2000)
+bootResults
+bootReg <- function (formula, data, i)  #all this is the actual formula
+{
+d<- data [i,]
+fit <- lm(formula, data = d)
+return (coef(fit))
+}
+bootResults <- boot(statistic = bootReg, formula = sales ~ adverts + airplay + attract, data = hierarchical, R = 2000)
+bootResults
+interceptbtci <- boot.ci(bootResults, type = "bca", index = 1)
+interceptbtci
+advertsbtci <- boot.ci(bootResults, type = "bca", index = 2)
+advertsbtci
+airplaybtci <- boot.ci(bootResults, type = "bca", index = 3)
+airplaybtci
+attractbtci <- boot.ci(bootResults, type = "bca", index = 4)
+attractbtci
+plot(albumsales.2)
+albumsales.2
+hw2data <- read.delim("HW2.dat", header = TRUE)
+library(ggplot2)
+library(pastecs)
+library(psych)
+library(boot)
+library(QuantPsyc)
+library(car)
+stat.desc(hw2data)
+by(hw2data$Stigma, hw2data$Thoughts, stat.desc, basic = FALSE, norm = TRUE)
+by(hw2data$Stigma, stat.desc, basic = FALSE, norm = TRUE)
+View(hw2data)
+View(hw2data)
+by(hw2data[,c("Stigma", "Thoughts","Hope", "Emotion")], stat.desc, basic = FALSE, norm = TRUE)
+by(hw2data[,c("Stigma", "Thoughts", "Hope", "Emotion")], hw2data$Stigma, stat.desc, basic = FALSE, norm = TRUE)
+stat.desc(simple[,c("Stigma", "Thoughts", "Hope", "Emotion")], basic = F, norm = T)
+stat.desc(hw2data[,c("Stigma", "Thoughts", "Hope", "Emotion")], basic = F, norm = T)
+#4
+stat.desc(hw2data$Stigma, basic = FALSE, norm = TRUE)
+#15
+model1 <- lm(Stigma ~ thoughts, data = simple, na.action = na.omit)
+#15
+model1 <- lm(Stigma ~ thoughts, data = hw2data, na.action = na.omit)
+#15
+model1 <- lm(Stigma ~ Thoughts, data = hw2data, na.action = na.omit)
+summary(model1)
+lm(beta)
+lm.beta(model1)
+stat.desc(hw2data[,c("Stigma", "Thoughts")], basic = F, norm = T)
+model2.2 <- lm(Stigma ~ Thoughts + Hope + Emotion, data = hierarchical, na.action = na.omit)
+summary(model2.2)
+library(psych)
+library(pastecs)
+model2 <- lm(Stigma ~ Thoughts + Hope + Emotion, data = hierarchical, na.action = na.omit)
+summary(model2)
+#23
+model2 <- lm(Stigma ~ Thoughts + Hope + Emotion, data = hierarchical, na.action = na.omit)
+#23
+model2 <- lm(Stigma ~ Thoughts + Hope + Emotion, data = hw2data, na.action = na.omit)
+summary(model2)
+lm.beta(model2)
+anova(model1, model2)
+stat.desc(hw2data[,c("Stigma", "Thoughts", "Hope", "Emotion")], basic = F, norm = T)
+#15-19
+model1 <- lm(Stigma ~ Thoughts, data = hw2data, na.action = na.omit)
+summary(model1)
+#20-21
+lm.beta(model1)
+stat.desc(hw2data[,c("Stigma", "Thoughts")], basic = F, norm = T)
+#23-27
+model2 <- lm(Stigma ~ Thoughts + Hope + Emotion, data = hw2data, na.action = na.omit)
+summary(model2)
+#28-29
+lm.beta(model2)
+#31-34
+anova(model1, model2)
+hw2data <- read.delim("HW2.dat", header = TRUE)
+library(ggplot2)
+library(pastecs)
+library(psych)
+library(boot)
+library(QuantPsyc)
+library(car)
+stat.desc(hw2data[,c("Stigma", "Thoughts", "Hope", "Emotion")], basic = F, norm = T)
+#15-19
+model1 <- lm(Stigma ~ Thoughts, data = hw2data, na.action = na.omit)
+summary(model1)
+#20-21
+lm.beta(model1)
+stat.desc(hw2data[,c("Stigma", "Thoughts")], basic = F, norm = T)
+#23-27
+model2 <- lm(Stigma ~ Thoughts + Hope + Emotion, data = hw2data, na.action = na.omit)
+summary(model2)
+#28-29
+lm.beta(model2)
+#31-34
+anova(model1, model2)
+gfr <- read.delim("GlastonburyFestivalRegression.dat", header = TRUE)
+library(car)
+View(gfr)
+View(gfr)
+autodummy <- lm(change ~ music, data = gfr, na.action = na.omit)
+summary(autodummy)
+contrasts(gfr$music) <- contr.treatment(4, base = 4)
+manual1 <- lm(change ~ music, data = gfr, na.action = na.omit)
+summary(manual1)
+crusty_v_NMA <- c(1, 0, 0, 0)
+indie_v_NMA <- c(0, 1, 0, 0)
+metal_v_NMA <- c(0, 0, 1, 0)
+contrasts(gfr$music) <- cbind(crusty_v_NMA, indie_v_NMA, metal_v_NMA)
+manual2 <- lm(change ~ music, data = gfr, na.action = na.omit)
+summary(manual2)
+install.packages(c("MASS","akima","robustbase"))
+install.packages(c("cobs","robust","mgcv","scatterplot3d","quantreg","rrcov","lars","pwr","trimcluster","mc2d","psych","Rfit","DepthProc","class","fda"))
+install_github("nicebread/WRS", subdir = "pkg")

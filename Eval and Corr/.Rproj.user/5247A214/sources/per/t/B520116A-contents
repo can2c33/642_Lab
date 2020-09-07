@@ -1,0 +1,99 @@
+HW1data <- read.delim("HW1.dat", header = TRUE)
+library(ggm)
+library(ggplot2)
+library(polycor)
+library(Hmisc)
+library(psych)
+library(boot)
+library(pastecs)
+library(car)
+
+HW1data$Gender <- factor(HW1data$Gender, levels = c(1:2), labels = c("Female","Male"))
+HW1data$PastTX <- factor(HW1data$PastTX, levels = c(1:2), labels = c("No Tx", "Tx"))
+maleData <- subset(HW1data, HW1data == "Male")
+femaleData <- subset(HW1data, HW1data$Gender == "Female")
+txData <- subset(HW1data, HW1data$PastTX == "Tx")
+notxData <- subset(HW1data, HW1data$PastTX == "No Tx")
+HW1edit <- HW1data[,c("Stigma","Emotion","Thoughts","Hope")]
+txData$Gender <- factor(HW1data$Gender, levels = c(1:2), labels = c("Female","Male"))
+
+hist.emotion = ggplot(HW1data, aes(Emotion)) + geom_histogram(aes(y = ..density..), color = "black", fill = "white") + labs(x = "Emotion", y = "Density")
+hist.emotion
+
+hist.male = ggplot(maleData, aes(Emotion)) + geom_histogram(aes(y = ..density..), color = "black", fill = "white") + labs(x = "Male", y = "Density")
+hist.male
+
+hist.female = ggplot(femaleData, aes(Emotion)) + geom_histogram(aes(y = ..density..), color = "black", fill = "white") + labs(x = "Female", y = "Density")
+hist.female
+
+hist.treatment = ggplot(txData, aes(Emotion)) + geom_histogram(aes(y = ..density..), color = "black", fill = "white") + labs(x = "Treatment", y = "Density")
+hist.treatment
+
+hist.notreatment = ggplot(notxData, aes(Emotion)) + geom_histogram(aes(y = ..density..), color = "black", fill = "white") + labs(x = "No Treatment", y = "Density")
+hist.notreatment
+
+describe(HW1data$Emotion)
+stat.desc(HW1data$Emotion, basic = FALSE, norm = TRUE)
+
+describe(HW1data$Stigma)
+stat.desc(HW1data$Stigma, basic = FALSE, norm = TRUE)
+
+
+describe(femaleData$Emotion)
+stat.desc(femaleData$Emotion, basic = FALSE, norm = TRUE)
+
+describe(txData$Emotion)
+stat.desc(maleData$Emotion, basic = FALSE, norm = TRUE)
+
+describe(txData$Emotion)
+stat.desc(txData$Emotion, basic = FALSE, norm = TRUE)
+
+describe(notxData$Emotion)
+stat.desc(notxData$Emotion, basic = FALSE, norm = TRUE)
+
+describe(cbind(HW1data$Hope, HW1data$Stigma, HW1data$Emotion, HW1data$Thoughts))
+
+stat.desc(cbind(HW1data$Hope, HW1data$Stigma, HW1data$Emotion, HW1data$Thoughts), basic = FALSE, norm = TRUE)
+describe(HW1data[,c("Hope","Stigma","Emotion","Thoughts")])
+stat.desc(HW1data[,c("Hope","Stigma","Emotion","Thoughts")], basic = FALSE, norm = TRUE)
+
+txData$Gender <- factor(txData$Gender, levels = c(0:1), labels = c("Male", "Female"))
+txData$Gender <- factor(txData$Gender, levels = c(0:1), labels = c("Male", "Female"))
+txData
+
+describe(HW1data$Hope)
+stat.desc(HW1data$Hope, basic = FALSE, norm = TRUE)
+
+library(car)
+
+leveneTest(HW1data$Emotion, HW1data$PastTX, center = median)
+
+leveneTest(HW1data$Stigma, HW1data$Gender, center = median)
+
+cor(HW1data$Stigma, HW1data$Thoughts, use = "pairwise.complete.obs", method = "pearson")
+cor(HW1data$Stigma, HW1data$Thoughts, use = "pairwise.complete.obs", method = "pearson")^2
+
+cor(ExAnx[,c("Revise","Anxiety","Exam")], use = "pairwise.complete.obs", method = "pearson")
+
+cor.test(HW1data$Stigma, HW1data$Thoughts, alternative = "two.sided", use = "pairwise.complete.obs", method = "pearson", conf.level = 0.95)
+
+cor.test(HW1data$Stigma, HW1data$Emotion, alternative = "two.sided", use = "pairwise.complete.obs", method = "pearson", conf.level = 0.95)
+
+
+bootr <- function(HW1data, i) cor(HW1data$Stigma[i], HW1data$Emotion[i], use = "pairwise.complete.obs", method = "pearson")
+boot_r <- boot(HW1data, bootr, 2000)
+boot_r
+boot.ci(boot_r)
+
+HW1data2 <- HW1data[,c("Stigma", "Emotion", "Thoughts")]
+pcate <- pcor(c("Stigma", "Emotion", "Thoughts"), var(HW1data2))
+pcate
+
+pcor.test(pcate, 1, 103)
+
+HW1data3 <- HW1data[,c("Stigma", "Emotion", "Thoughts", "Hope")]
+pcate2 <- pcor(c("Stigma", "Emotion", "Thoughts", "Hope"), var(HW1data3))
+pcate2
+
+pcor.test(pcate2, 1, 120)
+

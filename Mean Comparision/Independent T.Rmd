@@ -1,0 +1,189 @@
+---
+title: "Independent T-Test"
+author: "Michael S. Ternes, Ph.D."
+date: "26 January 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Before we get started with T-tests, the book has us use robust testing methods when appropriate. Unfortunately, the testing methods to which the book refers are not provided directly by the R project. Instead, these methods are sourced from Randy Wilcox, a Professor of Psychology at USC. In order to gain access to Professor Wilcox's packages, we will do the following two things. First, we can tap into a limited selection of Wilcox's functions by installing the R package WRS2. Do that now.
+
+```{r, eval=FALSE}
+install.packages(WRS2)
+```
+
+The second thing we can do is to get the functions straight from Wilcox's website. To to this go to this [link](https://dornsife.usc.edu/labs/rwilcox/software/) and download the Rallfun-V37.txt document. Then, save that txt document to your main file for R. For me, that file is in "My Documents." Alternatively, you can go to our course Moodle page and download the txt file from the Lab 2 file. Once you have that saved in a place to which you could easily navigate with your Finder (the blue face icon) on Mac or your File Explorer (the file looking icon) on PC, you can access it during any R Studio session by running the code source(file.choose()). This will open a File Explorer or Finder window that you can use to go to your main R file, again the default is that this is stored in your "My Document" folder. Then you can go in and select the txt file and click open. Now you have access to all of the functions, not just a subset. 
+
+```{r, eval=FALSE}
+source(file.choose())
+```
+
+An optional third action that I should not be required to have access to all of the functions you need, assuming you have at least done the previous two steps, is more advanced. It is the process of creating a package, sourcing the package creation syntax from a user on GitHub. GitHub is a company that, among other functions, is an international repository for software development and coding. To created the WRS package there are multiple steps outlined in the following directions. Please note, if you are a Mac user, you may need additional developer tools for R. Those can be found [here](https://cran.rstudio.com/bin/macosx/tools/). I would hold off on installing anything additional until you receive an error message asking for a specific tool set. Now then, for the PC syntax:
+ 
+```{r, eval=FALSE}
+install.packages(c("MASS","akima","robustbase"))
+install.packages(c("cobs","robust","mgcv","scatterplot3d","quantreg","rrcov","lars","pwr","trimcluster","mc2d","psych","Rfit","DepthProc","class","fda"))
+install.packages("devtools")
+library(devtools)
+
+#This section is optional
+install_github("mrxiaohe/WRScpp") #This is the line of code with which I had the most trouble. From what I can tell, the consequence of not running this code line is that you will not have access to the C++ dependent functions. This is a very small subset of the total 1600 functions. If you care deeply about this, you could try alternative syntax:
+install_github(repo="WRScppWIN",username="mrxiaohe") #Then to access you would run:
+library(RcppArmadillo)
+library(WRScpp)
+
+#This section is essential
+install_github("nicebread/WRS", subdir = "pkg")
+```
+
+Now then, you will want to be sure to have your data and packages loaded up. We have two different forms of the same data. Again, we are working with the example provided by the book. For the independent t-test, we are working with 24 study participants who reported their anxiety related to a spider-related stimuli. Participants were divided evenly into two groups. The first group was presented with a picture of a spider, while the other group was presented with a real spider. In the long-form data, the group variable is in one column and the anxiety score is in another. In the wide-form data, the anxiety score for the real group is in one colum and the anxiety score for the picture group is in another. Let us load both sets of data.
+
+```{r, include=FALSE}
+anxLong <- read.delim("SpiderLong.dat", header = TRUE)
+anxWide <- read.delim("SpiderWide.dat", header = TRUE)
+library(ggplot2)
+library(pastecs)
+library(WRS)
+library(car)
+```
+```{r, eval=FALSE}
+anxLong <- read.delim("SpiderLong.dat", header = TRUE)
+anxWide <- read.delim("SpiderWide.dat", header = TRUE)
+library(ggplot2)
+library(pastecs)
+library(WRS)
+library(car)
+```
+
+## Assumptions ##
+
+The T-test is classified as a parametric statistic, thus, we need to ensure that our data is at least interval. We will hold this to be true for the dependent variable, as grouping variables are, by their nature, nominal. It also is assumed that yoru data is independent. Now, not only are you assuming that participants did not influence one another, but, in the case of the independent t-test, you are assuming that each condition of your study did not influence the other. Another assumption with which we frequently deal is the assumption of normality. For this, we could choose to visually and numerically inspect our data. I want to encourage you to practice making histograms and qq-plots. While we have been familiar with testing the data as a whole, because our interest is in the individual groups, our emphasis will be on these groups for our normality investigation. First, let us take a glance at the numbers for the combined sample.
+
+```{r}
+stat.desc(anxLong$Anxiety, basic = F, norm = T)
+```
+
+On the whole, nothing appears abnormal here. Again, since our analysis is interested in the groups within our data, we need to ensure the data is normally distributed for each group. In the past, we had to train R to recognize our grouping variable as a factor. This was because the variable was originally scored as 0 and 1, we had to teach R about Duncetown and Sussex. In this case, the data is already entered for us as a text variable for which there are two levels (picture and real). Thus, we do not need to factor the grouping variable prior to entering it into our by() function.
+
+```{r}
+by(anxLong$Anxiety,anxLong$Group, stat.desc, basic = F, norm = T)
+```
+
+Both groups look terrifically normal. What about homogenity of variance? We can test that using Levene's Test.
+
+```{r}
+leveneTest(anxLong$Anxiety, anxLong$Group)
+```
+
+Our non-significant result is a good indication that our variance is equivalent between groups. Where you to ever violate this assumption, you can address it by using a Welch's t-test rather than a standard t-test. You could, if you choose, always do a Welch's t-test and just not worry about testing for homogeneity of variance at all. Where is the fun in that? 
+
+## T-test ##
+
+With our assumptions for parametric statistics met, we can move on to the test itself. When calculating an independent t-value, you are asking to what degree the observed difference in group means exceeds the pooled standard error. When the sample size of each group is the same, the underlying equation, after some extended proofing, looks like the following:
+
+$$
+\begin{aligned}
+t=\frac{\overline{X_1}-\overline{X_2}}{\sqrt{\frac{S_1^2}{N_1} + \frac{S_2^2}{N_2}}}
+\end{aligned}
+$$
+
+If our groups have unequal sample sizes, then rather than using each group's variance, we need to calculate a pooled variance for both groups. The formula for calculating pooled variance is as follows:
+
+$$
+\begin{aligned}
+S_P^2=\frac{(n_1-1)S_1^2 + (n_2-1)S_2^2}{n_1+n_2-2}
+\end{aligned}
+$$
+
+This is substituted into our equal groups equation giving us something that looks like this:
+
+$$
+\begin{aligned}
+t=\frac{\overline{X_1}-\overline{X_2}}{\sqrt{\frac{S_P^2}{n_1} + \frac{S_P^2}{n_2}}}
+\end{aligned}
+$$
+
+Fortunately for us, we do not have to do any of this by hand; however, I think it is important for you to see how mean, standard deviation, and variance are all still very much at play as we derive our important statistical values. To do this the automated way, we need to make use of the function t.test(). There are two different ways to make use of this function, and it is entirely dependent upon whether you have all of your outcome scores in one column (e.g., anxLong) or split between columns where each column is representative of a different group (e.g., anxWide). If all of your outcome scores are in a singular column, then you can use t.test() much like you would use the lm() function. The basic layout would be Model <- t.test(outcome ~ predictor, data = dataframe, paired = TRUE/FALSE, na.action = na.omit, *mu = 0, alternative = "two.sided"/"less"/"greater"*). In this layout, the predictor is the variable that offers the grouping. The paired argument tells R whether this is an independent (FALSE) or dependent (TRUE) t-test. In italics are optional argument. If you expected a difference in groups, you could account for that difference with the mu argument. If you wanted to do a one-tailed test, you could specify "less" or "greater." The string for the two-tailed test is the default. 
+
+```{r}
+longModel <- t.test(Anxiety ~ Group, data = anxLong, paired = FALSE, na.action = na.omit)
+longModel
+```
+
+Alternatively, we can make use of the wide data set with the following general layout: Model <- t.test(group 1 scores, group 2 scores, paired = TRUE/FALSE, na.action = na.omit, *mu = 0, alternative = "two.sided"/"less"/"greater"*). Let us run this with our spider data.
+
+```{r}
+wideModel <- t.test(anxWide$picture, anxWide$real, paired = FALSE, na.action = na.omit)
+wideModel
+```
+
+Note, our degrees of freedom are weird. This is because the t.test() function is defaulting to Welch's t, and this is okay. Please also note that since this an independent t-test with equal sample sizes in our groups, we could have done this using dummy coded regression. 
+
+```{r}
+proof <- lm(Anxiety ~ Group, anxLong, na.action = na.omit)
+summary(proof)
+```
+
+You might notice that our t-value is the same, as is our p-value. This is because when the sample size of our different groups are the same, Welch's will make very little difference to our numbers. So, since lm() does not use Welch's correction and our sample sizes are the same, things are close enough that rounded to the nearest thousandth, we are identical. Fun! 
+
+## Robust Examination ##
+
+What if during our exploration of assumptions we encountered a problem with the normality of our data? Typically, our answer to this had been to bootstrap. While that is a component of what we could do, we also could make use of trimmed means. A trimmed mean will exclude a specified percentage of your extreme scores on either side of the mean. Therefore, trimmed means are best for situations in which you have skewness. To do this, we need access to the WRS or WRS2 packages described earlier. The specific function depends on the package you want to use. In WRS2, you want to use the following format yuen(formula, long form dataframe, tr = .2). If you are using the created WRS library, then you will want to run yuen.effect(group 1 score, group 2 score, wide form dataframe, tr = .2, alpha = .05). Please note that the markdown was unable to run these for the html. Give it a try on your own and you should see the proper output. 
+
+```{r, eval=FALSE}
+yuen(Anxiety ~ Group, anxLong, tr = .2)
+yuen.effect(anxWide$picture, anxWide$real, tr = .2, alpha = .05)
+```
+
+If desired, you could combine your trimmed mean with a bootstrap. The command you would use for this is accessible through the WRS2 package. The code takes on the following general format: yuenbt(formula, long form dataframe, tr = .2, nboot = 2000, side = TRUE/FALSE). Side is indicating whether or not you want a symetrical confidence interval. If you set this to TRUE you will receive a probability value for the bootstrapped figure. 
+
+```{r, eval=FALSE}
+yuenbt(Anxiety ~ Group, anxLong, tr = .2, nboot = 2000, side = TRUE)
+```
+
+Frustratingly, this also will not run in my markdown assembly. A final robust method covered by the text is to use a M-estimator to control for outliers rather than trimming your mean. This can, of course, be combined with a bootstrap. This function is contained in WRS2 and takes the general form pb2gen(formula, long form dataframe, est = "mom", nboot = 2000). In this function, mom is known as a modified one-step estimator of location based on Huber's Psi. This is beyond the scope of this class, but at least you know that the function is not emailing someone's mom. 
+
+```{r, eval=FALSE}
+pb2gen(Anxiety ~ Group, anxLong, est = "mom", nboot = 2000)
+```
+
+Here again, when creating the html, R will not run this function. I do not know why. 
+
+## Effect Sizes ##
+
+Remember that the t-test is a test of significance looking at differences. What kind of difference being evaluated depends on the situation in which the t-test is being used. If our observed difference is not statistically significant, it could still be a meaningful effect. A different way to think about this is, just because your effect more probable than not does not mean it is not meaningful. To evaluage the meaningful nature of our observation, we can convert our t-value back to an effect size with which we are all familiar...$r$. We could calculate this by hand in a very straightforward way. 
+
+$$
+\begin{aligned}
+r=\sqrt{\frac{t^2}{t^2 + df}}
+\end{aligned}
+$$
+
+In addition to following the steps with our hand calculations, we can have R do this for us. The only catch, is we have to teach it what we want. Let us return to either of our non-robust t-tests. Contained in these objects are a variety of numbers that are used in the creation of our output. Just like when we were working with values contained in our regression models, we need to reference values contained in our t-test objects. Let us extract our t, as well as our df.
+
+```{r}
+t <- longModel$statistic[[1]]
+df <- longModel$parameter[[1]]
+```
+
+Fun fact, you can use either the long form or wide form t-test. 
+
+```{r}
+talt <- wideModel$statistic[[1]]
+dfalt <- wideModel$parameter[[1]]
+```
+
+Then to convert our $t$ to $r$, we need to run the following code. Note, this will not provide a number, it will create another object. 
+
+```{r}
+r <- sqrt(t^2/(t^2+df))
+```
+
+We can then display the value of $r$ rounded to the nearest thousandth by running:
+
+```{r}
+round(r, 3)
+```

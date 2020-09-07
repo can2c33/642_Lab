@@ -1,0 +1,75 @@
+---
+title: "Linear Segue"
+author: "Michael S. Ternes, Ph.D."
+date: "26 January 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Exploring the relationship between two continuous variables is a lot of fun. Sometimes, however, our research leads us to question the influence of group membership. Those groups can take many different forms and, in the linear model, these grouping variables are always dichotomous. The trouble is, sometimes (or a lot of times) our grouping variables have more than two discreet levels (e.g., socio-economic status, sexual orientation, gender identity, type of mental health concern, personality typology, etc.). In order to incorporate these grouping variables into a linear model, we first need to convert them into a series of dummy coded variables that contain only two levels. These levels allow us to see the influence of group membership. Since there are only two possible scores for the independent variable (in or out) rather than a continuum, the analysis reveals the average score for non-members (the y-intercept) and members (the y-intercept plus the beta for the dummy code), as well as tests to see if the influence of the beta (group membership) is significant. Dummy coding is a nice segue in the linear model because it uses the same equation and theory with which we became familiar through regression in order to move from score prediction to mean comparison. Let us explore this with the book's example. To do this, we need to load in the Glastonbury Festival data. We also need to make sure we have the car package loaded. 
+
+```{r, include=FALSE}
+gfr <- read.delim("GlastonburyFestivalRegression.dat", header = TRUE)
+library(car)
+gfr[1:20,]
+```
+```{r, eval=FALSE}
+gfr <- read.delim("GlastonburyFestivalRegression.dat", header = TRUE)
+library(car)
+```
+
+Now that we have our data loaded in, we can look at the names of our variables and the different levels to our grouping variable. We see that we a variable for ticket numbers, music affiliation (levels include crusty, indie kid, metaller, and no musical affiliation), smelliness rating across three days of the festival, and the change in smelliness by subtracting day three ratings from day one ratings. The variable that we will be dummy coding is music affiliation. 
+
+## Dummy Coding ##
+
+There are a number of different ways you can go about dummy coding a variable. One way is to manaully do it in Excel, or other data manipulation software, before uploading your data to R. This approach, while tedious and annoying, is the method that offers you the absolute most control. Another approach is to have R do it for you. When you import data, it is possible that R will recognize your variable as categorical rather than continuous (having text responses rather than numerical is a big hint for R to follow). A couple of problems with having R do this for you is that: 1. R defaults to choosing your comparison group and it will always select the first category based on alphabetical order. 2. R will simply name the contrasts based on the text without reference to the reference group. An important note, this will only work if your variable responses are text and not numerals. Let us demonstrate.
+
+```{r}
+autodummy <- lm(change ~ music, data = gfr, na.action = na.omit)
+summary(autodummy)
+```
+
+Since "crusty" is first alphabetically, it was made the reference group. Typically, reference groups are deliberately chosen since our research has us interested in specific types of deviations. Sometimes, this means the group that represents the majority is chosen for reference. Other times, we might specify a different reference group for a theoretical reason. I doubt our reasoning is ever because of the alphabet. 
+
+Now then, if we are creating dummy coded variables, there are some guidelines/steps to keep in mind as outlined by Field. 
+1. Count the number of groups you want to recode and subtract 1 (this is because one of your groups will be a reference group). 
+2. Created as many new variables as the value you determined in step 1. 
+3. Choose one of your groups as a baseline/reference. 
+4. Assign the baseline group 0 for all dummy variables.
+5. For the first group, assignment the first dummy variable a value of 1 and all others 0.
+6. Repeat this until all of your dummy variables are appropriately coded.
+7. Place all of your dummy variables into the regression analysis. 
+
+***Manual Dummy Coding***
+
+There are two different approaches to manually setting dummy codes and each uses the contrasts(VARIABLE) function. This function equips the specified variable with the contrasts attribute to let R know that any object involving this variable will be returning a specified series of contrats. In the version of manually dummy coding that requires less work we use the following code: contrasts(VARIABLE) <- contr.treatment(#GROUPS, base = # of reference group). Remember, R is referencing these group numbers by examinging the alphabetical order of our categorical responses; therefore, crusty = 1, indie kid = 2, metaller = 3, no musical affiliation = 4.Let us see this approach in action, setting no musical affiliation to be our reference group. 
+
+```{r}
+contrasts(gfr$music) <- contr.treatment(4, base = 4)
+manual1 <- lm(change ~ music, data = gfr, na.action = na.omit)
+summary(manual1)
+```
+
+Note, the downside to this approach is that it provides the least helpful predictor labels we have encountered to this point. When you only have four groups, maybe it is not so hard to keep this straight. What if you had 10? Thus, another manual dummy coding method requires a little more work but offers control over which group is the reference and the way in which contrasts are labeled! For this one, we need to use this general layout: NAME <- c(0 or 1 for each group label separated by commas where the reference group is only ever 0). 
+
+```{r}
+crusty_v_NMA <- c(1, 0, 0, 0)
+indie_v_NMA <- c(0, 1, 0, 0)
+metal_v_NMA <- c(0, 0, 1, 0)
+```
+
+Remember that the groups are in alphabetical order. So if we want crusties, we need to put a 1 in the first position. If we want metallers, we want a 1 in the third position. This provides the blueprints for our dummy variables of interest, and we still need to hand the blueprints off to the project manager. We dO that by using the following code: contrasts(VARIABLE) <- cbind(the dummy variables separated by commas).
+
+```{r}
+contrasts(gfr$music) <- cbind(crusty_v_NMA, indie_v_NMA, metal_v_NMA)
+manual2 <- lm(change ~ music, data = gfr, na.action = na.omit)
+summary(manual2)
+```
+
+Here, we are looking at the results for a dummy coded regression examing the influence of music affiliation on the average change of smelliness. So, for this model, we can see that the model as a whole explains about 7.6% of the variance in smelliness change. Our model does a better job of explaining the change in smelliness than does the overall average alone. We know this because of the F-statistic, $F(3,119)=3.27, p<.05$. The output suggests that the average no musical affiliation attendee will increase in smelliness by a little over half of a point on a scale from 0 to 4 where higher scores represent higher levels of freshness. As compared to no musical affiliation, crusties will be approximately 0.41 of a point smellier. Meaning the total average change in smelliness for a crusty is approximately 0.96. That is almost a full point smellier, people. Yikes. This difference is considered significant. By contrast, as compared to no musical affiliation attendees, metallers get less smelly by approximately 0.3 points. That means the average change for metallers was 0.52 smellier rather than the 0.5 smellier by no musical affiliation folks. While this difference is not determined to be statistically significant, is this difference significantly different from the difference exhibited by the crusties? 
+
+
+Well, this output will not tell us that. This is an adventure we might undertake later in the Quarter. 

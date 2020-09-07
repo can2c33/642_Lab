@@ -1,0 +1,64 @@
+hw4 <- read.delim("HW4.dat", header = T)
+
+hw4$treatment <- factor(hw4$treatment, levels = c(1:3), labels = c("meds", "talk", "both"))
+
+library(car)
+library(compute.es)
+library(ggplot2)
+library(multcomp)
+library(pastecs)
+
+#
+dummy <- lm(oq ~ treatment, data = hw4, na.action = na.omit)
+summary(dummy)
+
+#6-11
+by(hw4$oq, hw4$treatment, stat.desc, basic = F, norm = T)
+leveneTest(hw4$oq, hw4$treatment)
+
+#12-17
+oqModel <- aov(oq ~ treatment, data = hw4, na.action = na.omit)
+summary(oqModel)
+
+#19-24
+contrast1 <- c(-2,1,1)
+contrast2 <- c(0,-1,1)
+contrasts(hw4$treatment) <- cbind(contrast1, contrast2)
+hw4Planned <- aov(oq ~ treatment, data = hw4)
+summary.lm(hw4Planned)
+#leveneTest(oqANCOVA$sessions, oqANCOVA$treatment) #not being used right now
+
+#29-32
+TukeyHSD(aov(oq ~ treatment, data = hw4))
+
+#36- 39
+library(effects)
+oqANCOVA <- read.delim("HW4.dat", header = TRUE)
+oqANCOVA[1:5,]
+oqANCOVA$treatment <- factor(oqANCOVA$treatment, levels = c(1:3), labels = c("meds", "talk", "both"))
+by(oqANCOVA$sessions, oqANCOVA$treatment, stat.desc, basic = F, norm = T)
+
+#40-42
+indep <- aov(sessions ~ treatment, data = oqANCOVA, na.action = na.omit)
+summary(indep)
+
+#43-45
+ancovaModel <- aov(oq ~ sessions + treatment, data = oqANCOVA, na.action = na.omit)
+summary(ancovaModel)
+Anova(ancovaModel, type = "II")
+
+#46-49
+contrast1 <- c(-2,1,1)
+contrast2 <- c(0,-1,1)
+contrasts(oqANCOVA$treatment) <- cbind(contrast1, contrast2)
+ANCOVAplanned <- aov(oq ~ treatment, data = hw4)
+summary.lm(ancovaModel)
+
+#50-53
+phtancova <- glht(ancovaModel, linfct = mcp(treatment = "Tukey"))
+summary(phtancova)
+
+#55-57
+slopes <- aov(oq ~ sessions + treatment + treatment:sessions, data = oqANCOVA, na.action = na.omit)
+summary(slopes)
+Anova(slopes, type = "III")

@@ -1,0 +1,61 @@
+txLong <- read.delim("HW3tx.dat", header = TRUE)
+txWide <- read.delim("HW3txWIDE.dat", header = TRUE)
+
+emo <- read.delim("HW3emo.dat", header = TRUE)
+library(car)
+library(pastecs)
+
+#3 to 11
+autodummy <- lm(emotion ~ type, data = emo, na.action = na.omit)
+summary(autodummy)
+
+library(ggplot2)
+library(WRS2)
+
+#12-13
+#test normality but is not groups
+stat.desc(txLong$stigma, basic = F, norm = T)
+
+#15-17
+by(txLong$stigma,txLong$treat, stat.desc, basic = F, norm = T)
+
+#18-19
+leveneTest(txLong$stigma, txLong$treat)
+
+#20-23
+longModel <- t.test(stigma ~ treat, data = txLong, paired = FALSE, na.action = na.omit)
+longModel
+
+#24-25, 27
+t <- longModel$statistic[[1]]
+df <- longModel$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round (r, 3)
+
+#26
+proof <- lm(stigma ~ treat, txLong, na.action = na.omit)
+summary(proof)
+
+#28-32
+txWide$dif <- txWide$stigNTX - txWide$stigTX  
+txWide
+stat.desc(txWide$dif, basic = F, norm = T)
+
+#33-36
+wideModeldep <- t.test(txWide$stigNTX, txWide$stigTX, paired = TRUE, na.action = na.omit)
+wideModeldep
+
+
+#37-39
+bootdpci(txWide$stigNTX, txWide$stigTX, alpha = .05, nboot = 2000, est = tmean)
+yuend(txWide$stigNTX, txWide$stigTX, tr = .2)
+source(file.choose())
+ydbt(txWide$stigNTX, txWide$stigTX, tr = .2, nboot = 2000, alpha = .05, side = TRUE)
+
+#40-42
+t <- wideModeldep$statistic[[1]]
+df <- wideModeldep$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+

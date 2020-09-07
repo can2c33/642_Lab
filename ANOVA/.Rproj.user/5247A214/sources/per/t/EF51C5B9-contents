@@ -1,0 +1,93 @@
+## Loading the data.
+hw5 <- read.delim("HW5.dat", header = TRUE)
+## Loading the needed packages.
+library(car)
+library(pastecs)
+library(compute.es)
+library(multcomp)
+## Adjusting diagnosis order by severity rather than alphabet.
+hw5$dx <- factor(hw5$dx, levels = c("depress", "ptsd","psychotic"))
+## Simple effect set up.
+hw5$simple <- gl(6, 15)
+## Labeling the simple variable.
+hw5$simple <- factor(hw5$simple, levels = c(1:6), labels = c("nt_dep", "nt_psych", "nt_ptsd", "t_dep", "t_psych","t_ptsd"))
+
+
+#questions 4-19
+#questions 4-19
+by(hw5$hope, hw5$tx, stat.desc, basic = F, norm = T)
+by(hw5$hope, hw5$dx, stat.desc, basic = F, norm = T)
+by(hw5$hope, list(hw5$tx, hw5$dx), stat.desc, basic = F, norm = T)
+leveneTest(hw5$hope, hw5$tx)
+leveneTest(hw5$hope, hw5$dx)
+leveneTest(hw5$hope, interaction(hw5$dx, hw5$tx), center = median)
+
+#questions 20-29
+txc <- c(-1, 1)
+contrasts(hw5$tx) <- cbind(txc)
+hw5$dx <- factor(hw5$dx, levels = c("depress", "ptsd","psychotic"))
+dx_v_psychotic <- c(1, 1, -2)
+ptsd_v_depress <- c(-1, 1, 0)
+contrasts(hw5$dx) <- cbind(dx_v_psychotic, ptsd_v_depress)
+hw5Model <- aov(hope ~ tx + dx + tx:dx, data = hw5, na.action = na.omit)
+Anova(hw5Model, type = "III")
+summary.lm(hw5Model)
+
+#questions 30-32
+omega_2way <- function(n, a, b, SSa, SSb, SSab, SSr)
+{
+  MSa <- SSa/(a-1)
+  MSb <- SSb/(b-1)
+  MSab <- SSab/((a-1)*(b-1))
+  MSr <- SSr/(a*b*(n-1))
+  varA <- ((a-1)*(MSa-MSr))/(n*a*b)
+  varB <- ((b-1)*(MSb-MSr))/(n*a*b)
+  varAB <- ((a-1)*(b-1)*(MSab-MSr))/(n*a*b)
+  varTotal <- varA + varB + varAB + MSr
+  print(paste("Omega-Squared A: ", varA/varTotal))
+  print(paste("Omega-Squared B: ", varB/varTotal))
+  print(paste("Omega-Squared AB: ", varAB/varTotal))
+}
+Anova(hw5Model, type = "III")
+omega_2way(15, 2, 3, 142, 2247, 1555, 7213)
+
+#questions 33-42
+by(hw5$hope, hw5$simple, stat.desc, basic = F, norm = T)
+mes(46.400, 36.667, 7.347, 9.416, 15, 15)
+mes(45.067, 38.133, 9.874, 8.895, 15, 15)
+mes(26.400, 35.533, 9.847, 9.949, 15, 15)
+
+#questions 20-29
+txc <- c(-1, 1)
+contrasts(hw5$tx) <- cbind(txc)
+hw5$dx <- factor(hw5$dx, levels = c("depress", "ptsd","psychotic"))
+dx_v_psychotic <- c(1, 1, -2)
+ptsd_v_depress <- c(-1, 1, 0)
+contrasts(hw5$dx) <- cbind(dx_v_psychotic, ptsd_v_depress)
+hw5Model <- aov(hope ~ tx + dx + tx:dx, data = hw5, na.action = na.omit)
+Anova(hw5Model, type = "III")
+summary.lm(hw5Model)
+
+#questions 30-32
+omega_2way <- function(n, a, b, SSa, SSb, SSab, SSr)
+{
+  MSa <- SSa/(a-1)
+  MSb <- SSb/(b-1)
+  MSab <- SSab/((a-1)*(b-1))
+  MSr <- SSr/(a*b*(n-1))
+  varA <- ((a-1)*(MSa-MSr))/(n*a*b)
+  varB <- ((b-1)*(MSb-MSr))/(n*a*b)
+  varAB <- ((a-1)*(b-1)*(MSab-MSr))/(n*a*b)
+  varTotal <- varA + varB + varAB + MSr
+  print(paste("Omega-Squared A: ", varA/varTotal))
+  print(paste("Omega-Squared B: ", varB/varTotal))
+  print(paste("Omega-Squared AB: ", varAB/varTotal))
+}
+Anova(hw5Model, type = "III")
+omega_2way(15, 2, 3, 142, 2247, 1555, 7213)
+
+#questions 33-42
+by(hw5$hope, hw5$simple, stat.desc, basic = F, norm = T)
+mes(46.400, 36.667, 7.347, 9.416, 15, 15)
+mes(45.067, 38.133, 9.874, 8.895, 15, 15)
+mes(26.400, 35.533, 9.847, 9.949, 15, 15)

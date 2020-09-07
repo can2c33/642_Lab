@@ -1,0 +1,241 @@
+---
+title: "Model Evaluation"
+author: "Michael S. Ternes, Ph.D."
+date: "21 January 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Model Evaluation and Generalization ##
+Make sure you have everything from the Regression lab loaded to your environment. Load up all of the packages, too!
+
+```{r, eval=F}
+simple <- read.delim("Album Sales 1.dat", header = TRUE)
+hierarchical <- read.delim("Album Sales 2.dat", header = TRUE)
+library(car)
+library(QuantPsyc)
+library(boot)
+library(psych)
+library(pastecs)
+library(ggplot2)
+albumsales.1 <- lm(sales ~ adverts, data = simple, na.action = na.omit)
+albumsales.2 <- lm(sales ~ adverts + airplay + attract, data = hierarchical, na.action = na.omit)
+```
+```{r, include=F}
+simple <- read.delim("Album Sales 1.dat", header = TRUE)
+hierarchical <- read.delim("Album Sales 2.dat", header = TRUE)
+library(car)
+library(QuantPsyc)
+library(boot)
+library(psych)
+library(pastecs)
+library(ggplot2)
+albumsales.1 <- lm(sales ~ adverts, data = simple, na.action = na.omit)
+albumsales.2 <- lm(sales ~ adverts + airplay + attract, data = hierarchical, na.action = na.omit)
+
+```
+
+
+**Outliers and Residuals**
+
+First, we have to make some determinations about whether or not any of our data points is substantially different from the rest. Remember that residuals are the distances between the prediction you make and the observed data. We can use these residuals to find our outliers. Outliers, being substantially different than our other participants would be poorly predicted by our model and therefore have higher residuals. To eliminate the confusion caused by metrics, we create standardized residuals. Standardized residuals operate on the same guidelines as z-scores. 1. If any of our cases has a standardized residual above an absolute value of 3.29 (3 for a quick glance) there is cause for concern. 2. If more than 1% of our sample has a standardized residual greater than the absolute value of 2.58 (2.5 for a quick glance) there is cause for concern. 3. If more than 5% of cases have standardized residuals with absolute values greater than 1.96 (2 for a quick glance) there is cause for concern. Why do we care about all of this? Your book has some excellent illustrations showing how an outlier can shift your line of best fit, therefore changing your gradient and intercept. You can do something about this if they are exerting disproportionate influence on your results. You can quickly generate your residuals by creating a new variable in your dataframe for the residuals. To obtain straight residuals, use the function resid(MODEL). Standardized? rstandard(MODEL). Studentized? rstudent(). Let us explore the standardized since I wrote all about those cutoffs!
+
+```{r}
+rstandard(albumsales.2)
+```
+
+Please notice, this output takes a second and is annoyingly long! Of course it is, it is generating a residual for each participant's score on album sales in comparison to what our model said they would score. Yikes! Let us put this into our dataframe as a new variable rather than having to wade through a page and a half of results in block format with no context. In this case, We create a variablel with the following dataframe$new variable <- function(object).
+
+```{r}
+hierarchical$stdresid <- rstandard(albumsales.2)
+```
+
+We can look at just the first five rows of our newly edited dataframe, so you can get a feel for what you have done here.
+
+```{r}
+hierarchical[1:5,]
+```
+
+Even though we are not using it for interpretation right in this moment, go ahead and create variables for the studentized residuals, as well as the unstandardized residuals.
+
+```{r}
+hierarchical$sturesid <- rstudent(albumsales.2)
+hierarchical$resid <- resid(albumsales.2)
+```
+
+Now then, back to our standardized residuals...look at all of those one by one would SUCK! So we can have R inspect this information for us, creating a variable indicating whether or not the residual is large and then tallying up the number of cases for which the standardized residual is too big. The following code will create a variable containin a return of TRUE/FALSE for whether or not each case meets your specified criteria.
+
+```{r}
+hierarchical$large.resid <- hierarchical$stdresid > 2 | hierarchical$stdresid < -2
+```
+
+We can then have R count the number of TRUE returns for this variable.
+
+```{r}
+sum(hierarchical$large.resid)
+```
+
+Remember that 95% of cases are expected to have a standardardized residual of less than the absolute value of 1.96. In our sample of 200, we would expect that 190 cases would fit this expectation. Here, we see that only 188 of our cases do so. This means that these problematic few deserve more attention. Let us create a new dataframe for our problem children.
+
+```{r}
+problems <- hierarchical[hierarchical$large.resid,]
+problems
+```
+
+We can save our new dataframe as a data file in our working directory. Holding row.names to be TRUE allows us to retain the information identifying the participant in our original dataframe (hierarchical).  
+
+```{r}
+write.table(problems, "Album Sales Problems.dat", sep = "\t", row.names = TRUE)
+```
+
+If we look back to our problems dataframe, we can see that two of the identified participants exceed the next threshold up (2.5 at a glance or seriously 2.58). Remember we expect that no more than 1% of our sample will exceed that threshold, so we are good there. And yet, there are two cases that do exceed this threshold. All 12 cases warrant investigation, while cases 164 and 169 deserve extra skepticism. 
+
+**Influential Cases**
+
+Another way to determine an outliers is to understand which cases are exerting undue influence on the model. The first way to approach this is to have R help you calculate adjusted predicted values for a given data point when that point is excluded from the analysis. Essentially, if a case is not disproportionately impactful on the model, the recalculated model should not be that much different from what was predicted before. The difference in the new prediction and the original prediction is known as DFFit. You can calculate DFFit with the function dffits(MODEL). If cases are not influential, you would expect your DFFit value to be small, ideally it is zero. Dividing this residual by its standard error provides a studentized residual. This studentized residual allows you to compare across different regression analysis since it is a standardized metric. Relatedly, you can explre the difference between a parameter estimate including a case and again excluding a case. This is the DFBeta and can be derived with dfbeta(MODEL) in R. You are hoping to see differences be relatively small. While examining residuals helps you undertand the effect of one case on one point of the prediction line, it does not contextualize the overall impact of the case. So, we can turn to Cook's distance and hat values/leverage. Cook's distance values above 1 are suggested as cause for concern. With leverage, we need to know the average which is defined as $\frac{(k+1)}{n}$ wherein $k$ is the number of predictors in the model and $n$ is your sample size. Cases with leverage scores 2 or 3 times this average are cause for concern and deserve more examination. Obtain Cook's distance with the function cooks.distance(MODEL). Obtain leverage values with hatvalues(MODEL). Finally, you could look at covariance ratios, but the chapter does not do the best job of explaining these and this markdown is already really long! If you want to learn more about this, I invite you to discover it. So that we do not end up with an extensive output, let us make a variables in our dataframe for Cook's, leverage, DFFit, and DFbeta. After we have done that, let us update our data set involving our problem cases. 
+
+```{r}
+hierarchical$cooks <- cooks.distance(albumsales.2)
+hierarchical$leverage <- hatvalues(albumsales.2)
+hierarchical$dffit <- dffits(albumsales.2)
+hierarchical$dfbeta <- dfbeta(albumsales.2) 
+problems <- hierarchical[hierarchical$large.resid,c("cooks", "leverage", "dffit", "dfbeta")] #updates your special cases dataframe
+
+problems
+```
+
+Viewing the problems dataframe in the markdown works fine. For some reason, when I click on it in my environment, I do not see all of the DFbetas. In order to quickly see just the DFbetas, you could create an object containing them.
+
+```{r}
+df.betas <- dfbeta(albumsales.2) #downside: this gives you the figures for everyone
+df.betas[1:10,] #only looking at the first 10 rather than all 200
+```
+
+Looking at the problems dataframe, we can see that none of our Cook's values are above the suggested cutoff of 1. In looking at the leverage scores, we can see that all but one case is below the conservative cutoff of two times the average. All cases are below the three times the average cutoff. So, without looking at the individuals DFbetas, we can say that none of our cases are having an undue influence on the overall model. As such, it might be difficult to justify tossing the outliers if you do not have evidence that they are distorting things. 
+
+## Assumptions ##
+
+*Variable Types*: We expect that all of our variables are either quantitative or categorical (with only two categories). Our variables also should be continuous  and unbounded meaning that if your possible score on a given measure is 5-25, the scores in your data should not be 12-18 or some other significant restriction in range. If so, your data is considered "constrained."
+
+*Non-Zero Variance*: Your data must have variability since all of this is based on the idea that scores will deviate thereby producing variance. Without variance, you have nothing to explain with your model.
+
+*Homoscedasticity*: The residuals at each level of the predictor should have the same variance. This concept is the same concept as homogeneity of variance, which we tested with Levene's Test once upon a time. We can investigate this in a couple of different ways here. Our predictor variables do not have explicit factors. So rather than using a Levene's Test, we can make use of a visual inspection, as well as a test called the non-constant variance test. Let us start with the numerical analysis. Here, since we created a model using the lm() function, we can simply use the following code: ncvTest(MODEL). 
+
+```{r}
+ncvTest(albumsales.2)
+```
+
+The resulting statistic says that the residuals of our observations do not significantly differ as you move to different points of the prediction line. Reported, you might say that, results of a non-constant variance test ($\chi^2(1) = 0.303, p = ns$) indicate that the assumption of homoscedasticity is maintained. If you wanted to do a visual inspection, you could generate a scatter plot that provides information on homoscedasticity and linearity. In addition to studentized residuals, you will need the fitted values (these are all of the predicted values on the regression line and they come from your MODEL). You can plot these two pieces of information in a scatter plot that is, hopefully, a non-specific mass centered around 0. 
+
+```{r, eval = FALSE}
+library(ggplot2)
+```
+```{r, include = FALSE}
+library(ggplot2)
+```
+
+```{r}
+hierarchical$fitted <- albumsales.2$fitted.values
+scatter <- ggplot(hierarchical, aes(fitted, sturesid)) + geom_point() + geom_smooth(method = "lm", color = "Blue", se = F) + labs(x = "Fitted Values", y = "Studentized Residual")
+scatter
+```
+
+Here, a funnel shape would indicated possible heteroscedasticity. A curve would indicate non-linear data. See your book for examples.
+
+*Linearity*: The relationship we are describing can be described by a straight line. If the relationship we are exploring is, in fact, non-linear, we cannot generalize out. A visual inspection of this assumption could be carried out using the scatter plot from the homoscedasticity assumption. In reporting this, you might say that a visual inspection of the studentized residuals plotted against the fitted values showed evidence of linearity (see fig. 1).  
+
+*Independence*: Each value for an outcome is provided by a separate entity. One example that would violate this is if the same person did not take your survey multiple times over or threaten others in the survey room with violence if they did not respond as the violent respondent dictated.
+
+*Multicollinearity*: This will exist but should not be perfect. This is the idea that one or more of your predictor variables should not be highly correlated with another predictor variable. If they are, then they are accounting for similar portions of the overall variance. This leads to untrustworthy betas, a limited size of $R$, and obstructs your ability to evaluate the importance of individual predictors. There are two ways to evaluate this assumption. One way is to examine a correlation matrix for your variables. Any variables with correlations above .80 or .90 are problematic. A more specific analysis is the variance inflation factor (VIF). You want your average VIF for all variables to be close to or less than 1. You want individual VIF to be below 10. You want the reciprocal of VIF (also called tolerance) to be above 0.2 (the cutoff for concern) and certainly above 0.1 (the cutoff for major problems). Access the VIF by running vif(MODEL) and 1/vif(MODEL) for the reciprocal. 
+
+```{r}
+hpredict <- hierarchical[,c("adverts","airplay","attract")]
+cor(hpredict, use = "pairwise.complete.obs", method = "pearson")
+vif(albumsales.2)
+1/vif(albumsales.2)
+```
+
+*Uncorrelated Residuals with Predictors*: Predictors should not be correlated with variables outside of the model. If external variables are correlated with the predictors then the model is unreliable because some other variable exists than can predict the outcome just as well as the variables included in the model. To test this, we can create a correlation matrix. A correlation between the residual and any predictor would suggest the influence of an outside, unmeasured variable not included in our model. If a correlation were present, we would want to test it for significance. We can do this using the cor.test() fucntion.
+
+```{r}
+external <- hierarchical[,c("adverts","airplay","attract","resid")]
+cor(external, use = "pairwise.complete.obs", method = "pearson")
+```
+
+*Independent Errors*: Also called the lack of autocorrelation, this is the idea that for any two observations, the residuals should not be correlated. This assumption is tested with the Durbin-Watson test. The result can vary from 0 to 4 with a value of 2 meaning no correlation. A conservative rule of thumb for interpretation is that Durbin-Watson values less than 1 or greater than 3 are cause for concern. To run a Durbin-Watson, use the function durbinWatsonTest(MODEL) or dwt(MODEL). In addition to seeing where your statistic lands between 0 and 4, you can look at the associated p-value in hopes of seeing something non-significant.
+
+```{r}
+durbinWatsonTest(albumsales.2)
+dwt(albumsales.2)
+```
+
+*Normally Distributed Errors*: Residuals in the model should be random, normally distributed, with a mean of zero. Thus, the differences between the model and the observed data are most frequently zero or close to it. The book says we can inspect this visually. We can do that by visualizing the data with a histogram and with a qq-plot. If you need numbers to report, well, we can calculate those, too, with either the describe() or stat.desc() fucntion run on the residual of your choice. I chose to examine the standardized residual. 
+
+```{r}
+resid.hist <- ggplot(hierarchical, aes(stdresid)) + geom_histogram(aes(y = ..density..), color = "black", fill = "white") + labs(x = "Standardized Residual", y = "Density") + stat_function(fun = dnorm, args = list(mean = mean(hierarchical$stdresid, na.rm = TRUE), sd = sd(hierarchical$stdresid, na.rm = TRUE)), color = "black", size = 1)
+
+resid.hist
+
+resid.qq <- ggplot(hierarchical, aes(sample = stdresid)) + stat_qq(na.rm = TRUE) + labs(x = "Theoretical Values", y = "Observed Values")
+
+resid.qq
+
+stat.desc(hierarchical$stdresid, basic = F, norm = T)
+
+```
+
+**Cross-Validation** 
+
+If we for any reason doubt our ability to generalize our model to the larger population, we can evaluate the ability of our model to predict outcomes in a new sample. One way by which to do this is the Adjusted $R^2$. The Adjusted $R^2$ is an indication of what the $R^2$ is expected to be had your model been derived from the population rather than the sample. If your $R^2$ and the Adjusted $R^2$ are close, then you are probably okay. R gives you an Adjusted $R^2$; however, the formula used for this figure is not always well regarded. You can calculate a different Adjusted $R^2$ through a pretty straightfoward equation known as Stein's formula. In this equation, $n$ is your number of participants and $k$ is the number of predictors in your model:
+
+$$
+\begin{aligned}
+R^2_{adjusted} = 1 - [(\frac {n-1}{n-k-1})(\frac {n-2}{n-k-2})(\frac {n+1}{n})](1-R^2)
+\end{aligned}
+$$
+
+The other option is to split your data. Run your model on 80% of your cases, then run the same model on the remaining 20%. Compare the values of $R^2$ and the $b$-values. If they are close, this is evidence that you might be okay. 
+A note of cross-validation (adjusted R2)
+
+**Sample size**
+
+We need to estimate a regression model that would be fairly stable if collected in a new sample. A primary way by which to stabilize your model is to have a sufficient sample size. There are a number of guidelines for how many is enough. While there are benchmarks for evaluating just the overall model, this is rarely our goal. When exploring individual predictors, one suggestion is to have a minimum of 104 participants plus $k$ where $k$ is the number of predictors. Another very broad summary provided by Field is: 1. have at least 80 participants when expecting to find a large effect (with up to 20 predictors). 2. if expecting a medium effect 200 will always do the trick for up to 20 predictors, but a sample of 100 will do if you have six or fewer predictors. 3. if expecting a small effect then you are looking for at least 600 participants for up to six predictors and more than 600 if you have six or more predictors. Start working on those grant applications...
+
+## Bootstrapping ##
+You might be asking yourself, what if I have violated some assumptions of regression? Well, lucky for you, there exists a robust form of regression that makes use of...say it with me...bootstrapping. This method is particularly helpful when assumptions about normality are violated. In general, our overall approach to bootstrapping for regression remains the same as if it were bootstrapping a correlation. What changes is the complexity of the function we have to write to achieve the desired effect. To run a bootstrapped regression, we need to build the following function:
+
+```{r}
+bootReg <- function (formula, data, i)
+{
+  d<- data [i,]
+  fit <- lm(formula, data = d)
+  return (coef(fit))
+}
+```
+
+Here, we are creating an object called bootReg. Contained is a specific function that instructs the program in the ways of our formula that we want to run, our data, a particular parameter or set of parameters to be bootstrapped. In this function, we are creating a subset of our primary dataframe, creating a regreassion model called fit, and extracting the slopes for our predictors. After having run the bootReg syntax, we are able to make use of our shiny new object with the following code:
+
+```{r}
+bootResults <- boot(statistic = bootReg, formula = sales ~ adverts + airplay + attract, data = hierarchical, R = 2000)
+bootResults
+```
+
+We can then obtain confidence intervals for each of our boostrapped coefficients. To do this we have to specify the following: boot.ci(OBJECT, type = "bca", index = POSITION) wherein object is the name of your final boostrapped object, and index refers to which coefficient for which you want the C.I. (1 = intercept, 2 = first predictor, 3 = second predictor, etc.). Below, I have showed you how to create objects for organization. Creating the object is not necessary. You could, should you choose, just run the boot.ci function by itself with the necessary information. 
+
+```{r}
+interceptbtci <- boot.ci(bootResults, type = "bca", index = 1)
+interceptbtci
+advertsbtci <- boot.ci(bootResults, type = "bca", index = 2)
+advertsbtci
+airplaybtci <- boot.ci(bootResults, type = "bca", index = 3)
+airplaybtci
+attractbtci <- boot.ci(bootResults, type = "bca", index = 4)
+attractbtci
+```
+
+You can compare your bias-corrected and accelerated confidence intervals to those obtained without bootstrapping. Odds are, what you will observe is that the numbers are very close. If this is true, then it is unlikely that normality was a major concern for your data. In non-normal data, the bca C.I. would be more accurate than the non-bootstrapped C.I. Note that this process you are obtaining bootstrapped coefficients that are unstandardized and unstandardized confidence intervals. 
+
+Now that this is all finally over, I want to give you a cheat sheet. Remember those plots we created? Well, if you are not interested in creating plots that looks as nice as the ones we can code ourselves, we can have R plot them all for us using plot(MODEL). Sorry...not sorry.  
